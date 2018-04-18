@@ -11,22 +11,19 @@ states = []
 index = [] #format [start0, end0/start1, end1/start2] 
            #inclusive lowerBound, exclusive upperBound
            
-futureStates = []
-t = 0
 height = 3
 blocks = height*3
-maxHeight = height*blocks*3
+
 fallenIndex = -1
 fallenReward = -10
-goalIndex = 0   #to be changed after index.txt is read in
+#gaolIndex is specified after index file is read in
 goalReward = 10
 #otherReward = is currently based on how many move has been made
+
 resultFile = open("result.txt", "w")
 
-#alpha = tbd - possible not even final because of dynamic changing alpha
-gamma = 0.99
-#ROS variables
-#pub = rospy.Publisher('/game_msgs/action', Int32)
+alpha = 0.1
+gamma = 0.9999
 
 with open("states.txt") as f:
     readIn = f.read().splitlines()
@@ -52,14 +49,12 @@ def action(state, futureStates):
     blockNum = math.log2(xor&-xor) #0-index
     return blockNum
     
-def move(stateIndex):
-    return [0,0]
-    
 def reward(stateIndex, timeStep):
     if (stateIndex == -1): return fallenReward
     elif (stateIndex == len(states)-1): return goalReward
     else: return timeStep
 
+# TODO - Finish creating correct stateActionMatrix
 def createStateAction():
     Q = [[0 for i in range(blocks)] for j in range(len(states))]
     #for i in range(len(states)):
@@ -84,9 +79,16 @@ def locateState(rosState, t):
             return stateInformation
     return "State not found"
 
-#============================ SARSA ==========================================
+#============================ SARSA UPDATES ==========================================
 
+def sarsa_update(Q, oldS, newS, oldA, newA, r):
+    Q[oldS][oldA] += alpha * (r + gamma*Q[newS][newA] - Q[oldS][oldA])
+    return Q
 
+def updatePi (pi, Q, s):
+    actionValue = filter(None,Q[s])
+    pi[s] = Q[s].index(max(actionValue)) + 1  #plus 1 because blocks are 1-indexed
+    return pi
 
 #========= JUST TESTING =============#
 
@@ -103,17 +105,36 @@ jenga_move = None
 waitingForServer = True
 state = None
 newState = None
-Q #state_action matrix
+Q = createStateAction() #state_action matrix
+pi = [0 for i range(len(states))]
+t = 0
+totalReward = 0
+epoc = 0
 
 def reset_callback(empty):
     global waitingForServer
     global newState
+    global Q
+    global t
+    global totalReward
+    global epoc
 
     waitingForServer = True
     newState = None
-
+    epoc += 1
+    
+    # write Q value for each state into the columns and the total actions taken
+    resultFile.write(str(t) + "," + str(totalReward) + ",")
+    for i in range(len(Q)):
+        resultFile.write(str(max(Q[i])) + ",")
+    resultFile.write("\n")
+    
+    t = 0
+    totalReward = 0
     print("FALLEN!")
-
+    print("Epoc " + str(epoc) + ": " + str(t) + ", " + srt(totalReward)) 
+    #TODO figure out how to print Q
+    
 def state_pub_callback(res):
     global waitingForServer
     global state
@@ -136,33 +157,32 @@ if __name__ == 'main':
     desired_freq = rospy.get_param('~frequency', default = 1.0)
     sleep_time = 1.0 / desired_freq
 
-    #how do I reset??
-
-    #one iteration of sarsa until you reach a terminal state
-
-    state_info = locateState(state, t)
-    action = policyRoulette(state, Q)
-    t = 0
-    while not rospy.is_shutdown() and state!=states[len(states)-1]:
+    while not rospy.is_shutdown():
         rospy.sleep(sleep_time)
 
         if not waitingForServer:
-            
+            if newState == None:
+                state_info = locateState(state, t)
+                action = pi[state_info[0]]
+                
             r = R(state_info[0], state_info[1])
-            
+            totalReward += r
             try:
                 res = jenga_move(action)
             except rospy.service.ServiceException:
                 pass
             newState = res.data
+            rospy.sleep(sleep_rate) #see if the tower is fallen
             t += 1
             newState_info = locateState(newState, t)
-            newAction = policyRoulette(newState, Q)
+            newAction = pi[newState_info[0]]
+            #TODO figure out properly handling of array of index -1
+            
             Q = sarsa_update(Q, state_info[0], newState_info[0], action, newAction, r)
+            pi = updatePi(pi, Q, state_info[0])
+            
             state_info = newState_info
             action = newAction
 
-    print("Reached Goal State")
-    #somehow print Q
-    #---end of 1 iteration of SARSA
+    print("Done!!!!!!!!!!")
             
