@@ -150,9 +150,9 @@ while(True):
 				
             i += 1
             start = len(t)
-            if(len(t) == 0): 
-                states.append(byteGoal)
-                statesFile.write(bin(byteGoal) + "\n")
+            if(len(t) == 1): 
+                states.append(t)
+                statesFile.write(bin(t[0]) + "\n")
                 indexFile.write(str(end+1) + '\n')
                 break
         break
