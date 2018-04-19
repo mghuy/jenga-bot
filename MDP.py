@@ -36,18 +36,30 @@ with open("index.txt") as f:
     index = f.read().splitlines()
     index = list(map(int, index)) #python3 - take out list() around map() for python2
 
-goalIndex = index[len(index)-1]
+goalIndex = len(states)-1
 #example - print goal state
 #print(bin(states[goalIndex]))
 
 #============================== MDP =============================================
 
-def action(state, futureStates):
+def action(state, futureState):
     action = None
-    newState = random.choice(futureStates)
-    xor = state ^ newState
-    blockNum = math.log2(xor&-xor) #0-index
-    return blockNum
+    xor = state ^ futureState
+    blockNum = int(math.log(xor&-xor, 2)) #0-index
+    mask = int("1", 2)
+    for i in range (blockNum):
+        temp = 1<<(i+1)
+        mask |= temp
+    action = bin(mask & state).count("1")
+    #print(bin(mask), blockNum, action)
+    return (action-1)
+
+def possibleFuture(state, futureStates):
+    possibleFuture = []
+    for futureState in futureStates:
+        if (bin(state ^ futureState).count("1") == 2):
+            possibleFuture.append(futureState)
+    return possibleFuture
     
 def reward(stateIndex, timeStep):
     if (stateIndex == -1): return fallenReward
@@ -56,13 +68,17 @@ def reward(stateIndex, timeStep):
 
 # TODO - Finish creating correct stateActionMatrix where illegal actions == None
 def createStateAction():
-    Q = [[0 for i in range(blocks)] for j in range(len(states))]
-    #for i in range(len(states)):
+    Q = [[None for i in range(blocks)] for j in range(len(states))]
+    for i in range(len(states)-1):
+        t = len(bin(states[i]))-2 - blocks
+        futureStates = states[index[t+1]:index[t+2]]
+        possibleFutureStates = possibleFuture(states[i], futureStates)
+        #print(bin(states[i]), possibleFutureStates)
+        for futureState in possibleFutureStates:
+            actionIndex = action(states[i], futureState)
+            if actionIndex != None:
+                Q[i][actionIndex] = 0
     return Q
-
-    for i in range(len(states)):
-        for j in range(blocks):
-            Q[i][j] = None
         
     
 #returns [stateIndex (int), timeStep of currentState (int), futureStates(list)]
@@ -102,22 +118,23 @@ def updatePi (pi, Q, s):
     return pi
 
 #========= JUST TESTING =============#
-
+'''
 test = locateState("01001001001001011011",11);
 print(test)
 #print(len(bin(states[18]))-2)
-#Q = createStateAction();
-#print (Q)
-listing = [1,7,4,None, 7]
-print(listing.index(max(filter(None,listing))))
-    
+Q = createStateAction();
+for i in range(len(Q)):
+    print (bin(states[i]), Q[i])
+#listing = [1,7,4,None, 7]
+#print(listing.index(max(filter(None,listing))))
+''' 
 #============================ ROS STUFF ==========================================
 jenga_move = None
 waitingForServer = True
 state = None
 newState = None
 Q = createStateAction() #state_action matrix
-pi = [0 for i in range(len(states))]
+pi = [None for i in range(len(states))]
 t = 0
 totalReward = 0
 epoc = 0
@@ -144,8 +161,9 @@ def reset_callback(empty):
     totalReward = 0
     
     print("FALLEN!")
+    '''
     print("Epoc " + str(epoc) + ": #Actions = " + str(t) + ", Reward = " + srt(totalReward)) 
-
+    
     print("Printing Q")
     for i in range(len(Q)):
         print ("[" + str(i) + "] " + srt(round(max(Q[i]),3)) + " - ")
@@ -154,6 +172,7 @@ def reset_callback(empty):
     for i in range(pi):
         print ("[" + str(i) + "] " + str(pi[i]) + " - ")
         if (i%20 == 0): print("\n")
+    '''
     
 def state_pub_callback(res):
     global waitingForServer
@@ -187,6 +206,7 @@ if __name__ == 'main':
                 
             r = R(state_info[0], state_info[1])
             totalReward += r
+            print("Moving Block #: " + str(action))
             try:
                 res = jenga_move(action)
             except rospy.service.ServiceException:
