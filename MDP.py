@@ -16,9 +16,9 @@ height = 3
 blocks = height*3
 
 fallenIndex = -1
-fallenReward = -25
+fallenReward = -40
 #gaolIndex is specified after index file is read in
-goalReward = 50
+goalReward = 30
 #otherReward = is currently based on how many move has been made
 
 resultFile = open("result.txt", "w")
