@@ -15,9 +15,9 @@ height = 3
 blocks = height*3
 
 fallenIndex = -1
-fallenReward = -10
+fallenReward = -20
 #gaolIndex is specified after index file is read in
-goalReward = 10
+goalReward = 40
 #otherReward = is currently based on how many move has been made
 
 resultFile = open("result.txt", "w")
@@ -54,7 +54,7 @@ def reward(stateIndex, timeStep):
     elif (stateIndex == len(states)-1): return goalReward
     else: return timeStep
 
-# TODO - Finish creating correct stateActionMatrix
+# TODO - Finish creating correct stateActionMatrix where illegal actions == None
 def createStateAction():
     Q = [[0 for i in range(blocks)] for j in range(len(states))]
     #for i in range(len(states)):
@@ -72,31 +72,42 @@ def locateState(rosState, t):
     rosState = rosState[::-1]   #reverse string
     rosState = int(rosState,2)
     #t = len(bin(rosState))-2 - blocks
-    futureStates = states[index[t+1]:index[t+2]]
+    futureStates = []
+    if t<12: futureStates = states[index[t+1]:index[t+2]]
+    print(bin(rosState))
+    print(bin(states[index[t]]))
     for i in range(index[t], index[t+1]):
         if (rosState == states[i]):
             stateInformation = [i, t, futureStates]
             return stateInformation
-    return "State not found"
+    print("State Not Found - assuming fallen")
+    return [-1, t, []]
 
 #============================ SARSA UPDATES ==========================================
 
 def sarsa_update(Q, oldS, newS, oldA, newA, r):
-    Q[oldS][oldA] += alpha * (r + gamma*Q[newS][newA] - Q[oldS][oldA])
+    q = Q[oldS][newA-1]
+    q_t1 = Q[newS][newA-1]
+    if q == None: return Q
+    if q_t1 == None:
+          if oldS!=(len(states)-1): q_t1 = fallenReward
+          else: q_t1 = goalReward
+    Q[oldS][oldA-1] += alpha * (r + gamma*q_t1 - q)
     return Q
 
 def updatePi (pi, Q, s):
     actionValue = filter(None,Q[s])
-    pi[s] = Q[s].index(max(actionValue)) + 1  #plus 1 because blocks are 1-indexed
+    if (len(actionValue == 0)): pi[s] = None
+    else: pi[s] = Q[s].index(max(actionValue)) + 1  #plus 1 because blocks are 1-indexed
     return pi
 
 #========= JUST TESTING =============#
 
-test = locateState("1011111111",1);
+test = locateState("01001001001001011011",11);
 print(test)
-print(len(bin(states[18]))-2)
-Q = createStateAction();
-print (Q)
+#print(len(bin(states[18]))-2)
+#Q = createStateAction();
+#print (Q)
 listing = [1,7,4,None, 7]
 print(listing.index(max(filter(None,listing))))
     
@@ -106,7 +117,7 @@ waitingForServer = True
 state = None
 newState = None
 Q = createStateAction() #state_action matrix
-pi = [0 for i range(len(states))]
+pi = [0 for i in range(len(states))]
 t = 0
 totalReward = 0
 epoc = 0
@@ -124,16 +135,25 @@ def reset_callback(empty):
     epoc += 1
     
     # write Q value for each state into the columns and the total actions taken
-    resultFile.write(str(t) + "," + str(totalReward) + ",")
+    resultFile.write(str(t) + "," + str(totalReward))
     for i in range(len(Q)):
-        resultFile.write(str(max(Q[i])) + ",")
+        resultFile.write( "," + str(max(Q[i])))
     resultFile.write("\n")
     
     t = 0
     totalReward = 0
+    
     print("FALLEN!")
-    print("Epoc " + str(epoc) + ": " + str(t) + ", " + srt(totalReward)) 
-    #TODO figure out how to print Q
+    print("Epoc " + str(epoc) + ": #Actions = " + str(t) + ", Reward = " + srt(totalReward)) 
+
+    print("Printing Q")
+    for i in range(len(Q)):
+        print ("[" + str(i) + "] " + srt(round(max(Q[i]),3)) + " - ")
+        if (i%10 == 0): print("\n")
+    print("Printing pi")
+    for i in range(pi):
+        print ("[" + str(i) + "] " + str(pi[i]) + " - ")
+        if (i%20 == 0): print("\n")
     
 def state_pub_callback(res):
     global waitingForServer
@@ -175,8 +195,9 @@ if __name__ == 'main':
             rospy.sleep(sleep_rate) #see if the tower is fallen
             t += 1
             newState_info = locateState(newState, t)
-            newAction = pi[newState_info[0]]
-            #TODO figure out properly handling of array of index -1
+            newAction = random.randint(1, blocks-4)
+            if (newState_info[0] != -1): newAction = pi[newState_info[0]]
+            if newAction == None: newAction = random.randint(1, blocks-4)
             
             Q = sarsa_update(Q, state_info[0], newState_info[0], action, newAction, r)
             pi = updatePi(pi, Q, state_info[0])

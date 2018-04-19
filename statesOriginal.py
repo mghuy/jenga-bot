@@ -126,10 +126,6 @@ while(True):
     elapsed = time.time() - startTime
     states.extend(t)
     print("t=" + str(i) + ": " + str(len(t)) + " --- Total: " + str(len(states)) + " --- Time(min)" + str(elapsed/60) + "\n")
-    5
-    for j in range(end-start,end):
-        statesFile.write(bin(states[j]) + "\n")
-    indexFile.write(str(end) + '\n')
     
     if(len(t) == 0):
         print("Through with first iteration\n")
@@ -156,7 +152,11 @@ while(True):
                 indexFile.write(str(end+1) + '\n')
                 break
         break
-		
+    
+    for j in range(end-start,end):
+        statesFile.write(bin(states[j]) + "\n")
+    indexFile.write(str(end) + '\n')
+    
     i += 1
     start = len(t)    
     

@@ -363,9 +363,9 @@ def sarsa(episodes):
         #a = policyRoulette(s, Q)
         for step in range(1000):
             if terminate(s):
-                col = s[1]-1 + (s[0]-1)*4
-                for i in range(4):
-                    Q[i][col] = R(s)
+                #col = s[1]-1 + (s[0]-1)*4
+                #for i in range(4):
+                #    Q[i][col] = R(s)
                 break
             #a = pi[s[0]-1][s[1]-1]
             r = R(s)
@@ -407,4 +407,4 @@ prettyPrint(policy)
 #print(policy)
 #simulation(states, [3,1], policy, 5)
 
-sarsa(100000);
+sarsa(200000);
