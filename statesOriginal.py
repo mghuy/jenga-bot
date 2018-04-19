@@ -131,8 +131,9 @@ while(True):
         print("Through with first iteration\n")
         while(True):
             end = len(states)
-            moves = len(bin(states[end-1])) - 2
-            moves = int(math.floor(moves/3)*3)
+            length = len(bin(states[end-1])) - 2
+            moves = int(math.floor(length/3)*3)
+            if length % 3 == 0: moves -= 3
             print("[" + str(i) + "] createStates " + "(" + str(end-start) + ", " + str(end) + ", " + str(moves) + ")")
             startTime = time.time()
             t = createStates(end-start,end,moves,i-1)
@@ -146,10 +147,10 @@ while(True):
 				
             i += 1
             start = len(t)
-            if(len(t) == 1): 
-                states.append(t)
-                statesFile.write(bin(t[0]) + "\n")
-                indexFile.write(str(end+1) + '\n')
+            if(len(t) == 0): 
+                #states.append(t)
+                #statesFile.write(bin(t[0]) + "\n")
+                #indexFile.write(str(end+1) + '\n')
                 break
         break
     
