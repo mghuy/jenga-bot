@@ -180,14 +180,15 @@ def reset_callback(empty):
     waitingForServer = True
     newState = None
     epoc += 1
+    
   
     # write Q value for each state into the columns and the total actions taken
-    resultFile.write(str(t) + "," + str(totalReward))
+    resultFile.write(str(iteration) + "," + str(t) + "," + str(totalReward))
     for i in range(len(Q)):
         resultFile.write( "," + str(max(Q[i])))
     resultFile.write("\n")
     
-    print("Epoc " + str(epoc) + ": #Actions = " + str(t) + ", Reward = " + str(totalReward)) 
+    print("Epoc " + str(epoc) + ": #Actions = " + str(t-1) + ", Reward = " + str(totalReward)) 
 
     t = 0
     totalReward = 0
@@ -195,20 +196,18 @@ def reset_callback(empty):
     print("FALLEN!")
 
     iteration += 1
-    if iteration == 5:
-        print(pi)
+    if iteration == 101: rospy.signal_shutdown("end of iteration")
+    if iteration%10==0:
         policyFile.write("[")
         for i in range(len(pi)):
             policyFile.write(str(pi[i]) + ", ")
         policyFile.write("]\n")
-        iteration = 0
-
     
     
     
-    print("Printing Q")
-    for i in range(len(Q)):
-        print ("[" + str(i) + "] " + str((Q[i])))
+    #print("Printing Q")
+    #for i in range(len(Q)):
+    #    print ("[" + str(i) + "] " + str((Q[i])))
 '''
     print("Printing pi")
     for i in range(len(pi)):
@@ -237,7 +236,7 @@ if __name__ == '__main__':
 
     waitingForServer = True
 
-    desired_freq = rospy.get_param('~frequency', default = 1.0)
+    desired_freq = rospy.get_param('~frequency', default = 2.0)
     sleep_time = 1 / (desired_freq)
 
     while not rospy.is_shutdown():
