@@ -35,7 +35,7 @@ def reset_callback(empty):
 	move1 = 0
 	move2 = 1
 	iteration += 1
-	outFile.write(str(iteration) + "," + str(t-1) +"\n") 
+	outFile.write(str(iteration) + "," + str(t) +"\n") 
 	
 	if iteration == 101: rospy.signal_shutdown("end of iteration")
 	t = 0
