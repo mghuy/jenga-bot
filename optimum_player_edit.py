@@ -10,6 +10,7 @@ from jenga_robot_gazebo.srv import Move, MoveResponse
 outFile = open("optimalResult.txt", "w")
 
 jenga_move = None
+reset = None
 
 waitingForServer = True
 state = None
@@ -32,6 +33,7 @@ def reset_callback(empty):
 
 	global move1
 	global move2
+	
 	move1 = 0
 	move2 = 1
 	iteration += 1
@@ -47,11 +49,10 @@ def state_pub_callback(res):
 
 	state = res.data
 
-
 	for a in state:
 		if (a == "0"):
 			return
-
+		
 	waitingForServer = False
 
 
@@ -72,7 +73,7 @@ if __name__=='__main__':
 
 	waitingForServer = True
 
-	desired_frequency = rospy.get_param('~frequency', default = 1.0)
+	desired_frequency = rospy.get_param('~frequency', default = 2.0)
 	sleep_time = 1.0 / desired_frequency
 
 
@@ -111,7 +112,7 @@ if __name__=='__main__':
 			if (move1 >= block_count): 
 				waitingForServer = True
 				reset.publish()
-				print("calling reset")
+				print("Optimal Reached - Resetting Tower")
 
 	outFile.close()
 
