@@ -83,7 +83,7 @@ def createStateAction():
     
 #returns [stateIndex (int), timeStep of currentState (int), futureStates(list)]
 def locateState(rosState, t):
-    if (rosState == None):
+    if (rosState == None or rosState = ""):
         return [-1, t, []]
     rosState = rosState[::-1]   #reverse string
     rosState = int(rosState,2)
@@ -103,7 +103,7 @@ def locateState(rosState, t):
 #============================ SARSA UPDATES ==========================================
 
 def sarsa_update(Q, oldS, newS, oldA, newA, r):
-    print(oldS, newS, oldA, newA)
+    #print(oldS, newS, oldA, newA)
     if oldS == -1 or oldS == len(states)-1: return Q
     q = Q[oldS][oldA]
     if q == None: q = 0
@@ -125,7 +125,7 @@ def updatePi (pi, Q, s):
         actionValue[i] = Q[s][i]
     randomZeros = []
     move = max(actionValue)
-    print(actionValue)
+    #print(actionValue)
     if actionValue.count(move) > 1: 
             randomZeros = [i for i, x in enumerate(Q[s]) if x == move]
             pi[s] = random.choice(randomZeros)
@@ -229,7 +229,7 @@ if __name__ == '__main__':
 
     waitingForServer = True
 
-    desired_freq = rospy.get_param('~frequency', default = 2.0)
+    desired_freq = rospy.get_param('~frequency', default = 1.5)
     sleep_time = 1 / (desired_freq)
 
     while not rospy.is_shutdown():
