@@ -83,7 +83,7 @@ def createStateAction():
     
 #returns [stateIndex (int), timeStep of currentState (int), futureStates(list)]
 def locateState(rosState, t):
-    if (rosState == None or rosState = ""):
+    if (rosState == None or rosState == ""):
         return [-1, t, []]
     rosState = rosState[::-1]   #reverse string
     rosState = int(rosState,2)
@@ -159,7 +159,6 @@ for i in range(len(pi)):
     policyFile.write(str(pi[i]) + ", ")
 policyFile.write("]\n")
 t = 0
-totalReward = 0
 epoc = 0
 state_info = None
 iteration = 0
@@ -169,7 +168,6 @@ def reset_callback(empty):
     global newState
     global Q
     global t
-    global totalReward
     global epoc
     global iteration
 
@@ -180,16 +178,15 @@ def reset_callback(empty):
   
     # write Q value for each state into the columns and the total actions taken
     iteration += 1
-    resultFile.write(str(iteration) + "," + str(t) + "," + str(totalReward) + "\n")
+    resultFile.write(str(iteration) + "," + str(t-1) + "\n")
     
-    print("Epoc " + str(epoc) + ": #Actions = " + str(t-1) + ", Reward = " + str(totalReward)) 
+    print("Epoc " + str(epoc) + ": #Actions = " + str(t-1)) 
 
     t = 0
-    totalReward = 0
     
     print("FALLEN!")
 
-    policyFile.write("["
+    policyFile.write("[")
     for i in range(len(Q)):
         policyFile.write(str(max(Q[i])) + ", ")
     policyFile.write("]\n")
@@ -200,7 +197,7 @@ def reset_callback(empty):
             policyFile.write(str(pi[i]) + ", ")
         policyFile.write("]\n")
                      
-    if iteration == 101: rospy.signal_shutdown("end of iteration")
+    if iteration == 100: rospy.signal_shutdown("end of iteration")
     
     
 def state_pub_callback(res):
@@ -229,14 +226,14 @@ if __name__ == '__main__':
 
     waitingForServer = True
 
-    desired_freq = rospy.get_param('~frequency', default = 1.5)
+    desired_freq = rospy.get_param('~frequency', default = 1.8)
     sleep_time = 1 / (desired_freq)
 
     while not rospy.is_shutdown():
         rospy.sleep(sleep_time)
 
         if not waitingForServer:
-            if newState == None:
+            if state == "111111111":
                 t=0
                 print("New Start - Observed state = " + state)
                 state_info = locateState(state, t)
@@ -254,7 +251,6 @@ if __name__ == '__main__':
             rospy.sleep(sleep_time) #see if the tower is fallen
 
             r = reward(state_info[0], state_info[1])
-            totalReward += r
 
             t += 1
             newState_info = locateState(newState, t)
@@ -270,6 +266,7 @@ if __name__ == '__main__':
             action = newAction
 
             if (state_info[0] == len(states)-1):
+                t += 1
                 waitingForServer = True
                 reset.publish()
                 print("Optimal Reached - Resetting Tower")

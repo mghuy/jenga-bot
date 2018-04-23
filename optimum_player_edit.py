@@ -39,7 +39,7 @@ def reset_callback(empty):
 	iteration += 1
 	outFile.write(str(iteration) + "," + str(t) +"\n") 
 	
-	if iteration == 101: rospy.signal_shutdown("end of iteration")
+	if iteration == 100: rospy.signal_shutdown("end of iteration")
 	t = 0
 
 
