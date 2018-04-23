@@ -73,7 +73,7 @@ if __name__=='__main__':
 
 	waitingForServer = True
 
-	desired_frequency = rospy.get_param('~frequency', default = 2.0)
+	desired_frequency = rospy.get_param('~frequency', default = 1.5)
 	sleep_time = 1.0 / desired_frequency
 
 
