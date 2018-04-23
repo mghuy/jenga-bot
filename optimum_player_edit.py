@@ -45,8 +45,14 @@ def state_pub_callback(res):
 	global waitingForServer
 	global state
 
-	waitingForServer = False
 	state = res.data
+
+
+	for a in state:
+		if (a == "0"):
+			return
+
+	waitingForServer = False
 
 
 if __name__=='__main__':
@@ -79,11 +85,6 @@ if __name__=='__main__':
 			
 			# count the number of blocks we have
 
-			block_count = 0
-
-			for entry in state[0:len(state)-3]:
-				if entry == '1':
-					block_count += 1
 			
 			print("Moving block " + str(move1))
 
@@ -100,6 +101,12 @@ if __name__=='__main__':
 
 			except rospy.service.ServiceException:
 				pass
+
+			block_count = 0
+
+			for entry in state[0:len(state)-3]:
+				if entry == '1':
+					block_count += 1
 
 			if (move1 >= block_count): 
 				waitingForServer = True
