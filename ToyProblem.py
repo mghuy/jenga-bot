@@ -1,11 +1,17 @@
+# Author: Leng Ghuy
+# Version: April 30th, 2018
+
+# Toy problem environment to test MDP model and Learning algorithms
+
+###================================= IMPORTS =================================###
+
 import copy
 import sys
 import numpy as np
 from random import *
 from math import *
 
-
-### ------ Final Variables ------ ###
+###============================ GLOBAL VARIABLES =============================###
 
 borderMap = [[-1,-1,-1,-1,-1,-1],
              [-1,0,0,0,0,-1],
@@ -24,7 +30,7 @@ delta = 0.001
 alpha = 0.1
 
 
-### ------ Methods ------ ###
+###============================ HELPHER METHODS ==============================###
 
 def R (s):
     rewardMap = [[0,0,0,0,0,0],
@@ -96,6 +102,8 @@ def checkUD (s,possible):
     else:
         possible[0][2] += 0.2
 
+###=========================== VALUE ITERATION ===============================###
+        
 def value_iteration (states,actions,gamma,epsilon):
     U = [[0 for i in range(4)] for j in range(3)]
     U1 = [[0 for i in range(4)] for j in range(3)]
@@ -122,7 +130,6 @@ def value_iteration (states,actions,gamma,epsilon):
             print(count)
             return U
 
-#Given a fixed Utility from value iteration
 def best_policy(states,actions,U):
     pi = [[0 for i in range(4)] for j in range(3)]
     pi[1][1] = None
@@ -136,6 +143,8 @@ def expected_utility(a,s,U):
     possible = P(s,a)
     total = sum([p[2] * U[p[0]-1][p[1]-1] for p in possible])
     return total
+
+###========================== POLICY ITERATION ===============================###
 
 def policy_iteration(states,actions,gamma):
     U = [[0 for i in range(4)] for j in range(3)]
@@ -161,6 +170,8 @@ def policy_evaluation(pi, U, states, gamma, k=100):
             total = sum([p[2] * U[p[0]-1][p[1]-1] for p in possible])
             U[s[0]-1][s[1]-1] = R(s) + gamma * total
     return U
+
+###======================== ORIGINAL SIMULATION ==============================###
 
 def simulation(states, initState, policy, runTimes):
     for i in range(runTimes):
@@ -195,6 +206,8 @@ def simulation(states, initState, policy, runTimes):
                 percent += p[2]
             timeStep += 1
 
+###============================== TD UPDATES =================================###
+
 def roulette (state, action):
     possible = P(state, action)
     roulette = random()
@@ -209,20 +222,6 @@ def roulette (state, action):
             test += possible[i+1][2]
             prevState = [possible[i+1][0],possible[i+1][1]]
     return decision
-
-'''def passiveTD (perceptS, pi, prevInfo):
-    s,a,r = None
-    U = prevInfo[3], N=prevInfo[4]
-    i = perceptS[0]-1, j = perceptS[1]-1
-    previ = prevInfo[0][0]-1, prevj = prevInfo[0][1]-1
-    if (N[i][j] == 0): U[i][j] = R(perceptS)
-    if prevInfo[0]!= None:
-        N[previ][prevj] += 1
-        U[previ][prevj] = U[previ][prevj] + alpha*N[previ][prevj]*(prevInfo[2] + gamma*U[newi][newj]-U[i][j])
-    if (prevInfo[0] != [1,4] and prevInfo[0]!=[2,4]):
-        s = perceptS, a = pi[s], r = R(perceptS)
-    return [s,a,r,U]
-'''
 
 def greedy(state, q):
     return action;
@@ -272,7 +271,7 @@ def sim (pi):
         #print(pi)
     #print(info[3])
 
-#=========================== SARSA ================================#
+###============================ SARSA UPDATES ================================###
 
 def prettyPrint(table):
     for i in range(len(table)):
@@ -320,25 +319,11 @@ def policyRoulette (s, Q):
             prevA = actions[i+1]
     return decision
     
-    
-
-'''
-def expected(a,s,U):
-    possible = P(s,a)
-    total = sum([U[p[0]-1][p[1]-1] for p in possible])
-    return total
-
-def updatePi(pi, Q, s):
-    f = lambda a:expected_utility(a,s,Q)
-    l = [f(a) for a in actions]
-    pi[s[0]-1][s[1]-1] = actions[l.index(max(l))]
-    return pi
-'''
 def updatePi(pi, Q, s):
     col = s[1]-1 + (s[0]-1)*4
+    
     #find the index of largest value
     l = [x[col] for x in Q]
-    #print(l, l.index(max(l)))
     pi[s[0]-1][s[1]-1] = l.index(max(l))
     return pi
 
@@ -363,9 +348,9 @@ def sarsa(episodes):
         #a = policyRoulette(s, Q)
         for step in range(1000):
             if terminate(s):
-                #col = s[1]-1 + (s[0]-1)*4
-                #for i in range(4):
-                #    Q[i][col] = R(s)
+                col = s[1]-1 + (s[0]-1)*4
+                for i in range(4):
+                    Q[i][col] = R(s)
                 break
             #a = pi[s[0]-1][s[1]-1]
             r = R(s)
@@ -397,7 +382,7 @@ def sarsa(episodes):
     #pi = updatePi(pi, Q, s)
     prettyPrint(pi)
 
-### ------ Main Program ------ ###
+###============================== MAIN PROGRAM ===============================###
 
 utility = value_iteration(states, actions, gamma, delta)
 prettyPrint(utility)

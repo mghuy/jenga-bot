@@ -1,9 +1,26 @@
-#State Calcuation
+# Author: Leng Ghuy
+# Version: April 30th, 2018
+
+# Calculate all possible valid states for a specified height and output the binary
+#       states and the indeces of each time step to two specified output files
+
+###================================= IMPORTS =================================###
 
 import math
 import time
+
+###============================ GLOBAL VARIABLES =============================###
+
+states=[]
+init = 111111111;
+height = 3
+blocks = height * 3
+
 statesFile = open("states.txt", "w")
 indexFile = open("index.txt", "w")
+
+
+###============================ HELPHER METHODS ==============================###
 
 def RemoveDup (duplicate):
     final = []
@@ -12,21 +29,17 @@ def RemoveDup (duplicate):
             final.append(num)
     return final
 
-
-posList = []
-listing = 1
-posList.append(listing)
-for i in range(29):
-    listing += 3;
-    posList.append(listing)
-
 def RemoveInv(invalid):
     byteMask1 = '001'
     byteMask2 = '100'
     byteMask3 = '000'
     length = len(invalid)
     i = 0
+
+    #every time an object is deleted, the length changes...adding count handles
+    #this live update...do not remove
     count = 0
+    
     for i in range(length):
         s = invalid[i-count]
         #print(str(i) + " - " + str(len(invalid)) + " - " + bin(s))
@@ -37,12 +50,10 @@ def RemoveInv(invalid):
                 (bin(s)[length-3:length] == byteMask3)):
                 del invalid[i-count]
                 count += 1
-                #print("======removed: " + bin(s))
                 break;
             else:
                 length -= 3
     return invalid
-
 
 def printing(states):
     for i in range(len(states)):
@@ -52,35 +63,26 @@ def createStates(start, end, moves,timeStep):
     tempList = []
     for i in range(start,end):
         for j in range(moves):
-            temp = states[i] - (1<<j) + (1<<(9+timeStep))
-            if (bin(temp).count("1")==9):
+            temp = states[i] - (1<<j) + (1<<(blocks+timeStep))
+            if (bin(temp).count("1")==blocks):
                 tempList.append(temp)
     testList = RemoveDup(tempList)
-    #printing(testList)
     finalList = RemoveInv(testList)
-    #while(True):
-        #length = len(testList)
-        #print("length of testList: " + str(length))
-        #testList = RemoveInv(testList)
-        #if(length == len(testList)): break
-    printing(finalList)
+    #printing(finalList)
     return finalList
 
-states=[0]
-init = 111111111;
-goal = 1010010010010010010010010;
+###============================== MAIN PROGRAM ===============================###
+
 byte1 = int(str(init), 2)
-byteGoal = int(str(goal),2)
 states[0] = (byte1)
-#print((bin(states[0]))[0:4])
 
 statesFile.write(bin(states[0]) + '\n')
 indexFile.write('0' + '\n' + '1' + '\n')
 
 t1 = []
 startTime = time.time()
-for i in range(6):
-    temp = states[0] - (1<<i) + (1<<9);
+for i in range(blocks-3):
+    temp = states[0] - (1<<i) + (1<<blocks);
     t1.append(temp)
 elapsed = time.time() - startTime
 states.extend(t1)
@@ -128,7 +130,7 @@ while(True):
     print("t=" + str(i) + ": " + str(len(t)) + " --- Total: " + str(len(states)) + " --- Time(min)" + str(elapsed/60) + "\n")
     
     if(len(t) == 0):
-        print("Through with first iteration\n")
+        print("Through with first iteration - Now we break the rule \n")
         while(True):
             end = len(states)
             length = len(bin(states[end-1])) - 2
@@ -147,11 +149,8 @@ while(True):
 				
             i += 1
             start = len(t)
-            if(len(t) == 0): 
-                #states.append(t)
-                #statesFile.write(bin(t[0]) + "\n")
-                #indexFile.write(str(end+1) + '\n')
-                break
+            if(len(t) == 0): break
+            
         break
     
     for j in range(end-start,end):
@@ -160,7 +159,6 @@ while(True):
     
     i += 1
     start = len(t)    
-    
 	
 statesFile.close()
 indexFile.close()

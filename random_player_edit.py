@@ -1,19 +1,30 @@
 #!/usr/bin/env python
 
+# Author: Leng Ghuy
+# Adapated From: Kenneth Bogert
+# Version: April 30th, 2018
+
+# Agent that makes random block choices
+
+###================================= IMPORTS =================================###
 
 import roslib; roslib.load_manifest('jenga_robot_gazebo')
 import rospy
 from std_msgs.msg import Empty, Int32, String
 from jenga_robot_gazebo.srv import Move, MoveResponse
 
+###============================= ROS VARIABLES ===============================###
+
 outFile = open("randomResult.txt", "w")
 
 jenga_move = None
-
 waitingForServer = True
 state = None
+
 t = 0
 iteration = 0
+
+###============================== ROS CALLBACKS ==============================###
 
 def reset_callback(empty):
 	global waitingForServer
@@ -23,14 +34,14 @@ def reset_callback(empty):
 
 	waitingForServer = True
 	state = None
-	print(str(iteration) + "    " + str(t-2))
-	outFile.write(str(iteration) + "," + str(t-2) + "\n")
-	iteration += 1
-
-	if (iteration == 101): rospy.signal_shutdown("end of iteration")
-	t = 0
 
 	print("FALLEN!")
+	
+	iteration += 1
+        outFile.write(str(iteration) + "," + str(t-2) + "\n")
+	if (iteration == 100): rospy.signal_shutdown("end of iteration")
+	t = 0
+
 
 def state_pub_callback(res):
 	global waitingForServer
@@ -39,6 +50,7 @@ def state_pub_callback(res):
 	waitingForServer = False
 	state = res.data
 
+###============================== MAIN PROGRAM ===============================###
 
 if __name__=='__main__':
 
@@ -64,18 +76,14 @@ if __name__=='__main__':
 
 		if not waitingForServer:
 
-
 			# count the number of blocks we have
-
 			block_count = 0
 			print(state)
 			for entry in state[0:len(state)-3]:
 				if entry == '1':
 					block_count += 1
 
-			# pick a random block and move it
-
-
+			# pick a random block (not from top layer) and move it
 			import random
 
 			msg = Move()
@@ -87,7 +95,8 @@ if __name__=='__main__':
 				res = jenga_move(msg.data)
 			except rospy.service.ServiceException:
 				pass
+			
 			state = res.data
 			t += 1
-outFile.close()
+        outFile.close()
 

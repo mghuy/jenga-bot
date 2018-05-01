@@ -1,17 +1,26 @@
 #!/usr/bin/env python
 
+# Author: Leng Ghuy
+# Adapated From: Kenneth Bogert
+# Version: April 30th, 2018
+
+# Agent that plays the optimal path
+
+###================================= IMPORTS =================================###
+
 import random
 import roslib; roslib.load_manifest('jenga_robot_gazebo')
 import rospy
 from std_msgs.msg import Empty, Int32, String
 from jenga_robot_gazebo.srv import Move, MoveResponse
 
-#Leng's Edits
+
+###============================= ROS VARIABLES ===============================###
+
 outFile = open("optimalResult.txt", "w")
 
 jenga_move = None
 reset = None
-
 waitingForServer = True
 state = None
 
@@ -19,6 +28,8 @@ iteration = 0
 t = 0
 move1 = 0
 move2 = 1
+
+###============================== ROS CALLBACKS ==============================###
 
 def reset_callback(empty):
 	global waitingForServer
@@ -36,9 +47,9 @@ def reset_callback(empty):
 	
 	move1 = 0
 	move2 = 1
+	
 	iteration += 1
 	outFile.write(str(iteration) + "," + str(t) +"\n") 
-	
 	if iteration == 100: rospy.signal_shutdown("end of iteration")
 	t = 0
 
@@ -54,6 +65,8 @@ def state_pub_callback(res):
 			return
 		
 	waitingForServer = False
+
+###============================== MAIN PROGRAM ===============================###
 
 
 if __name__=='__main__':
@@ -84,9 +97,6 @@ if __name__=='__main__':
 
 		if not waitingForServer:
 			
-			# count the number of blocks we have
-
-			
 			print("Moving block " + str(move1))
 
 			try:
@@ -102,18 +112,17 @@ if __name__=='__main__':
 
 			except rospy.service.ServiceException:
 				pass
-
+			
+                        # count the number of blocks we have
 			block_count = 0
-
 			for entry in state[0:len(state)-3]:
 				if entry == '1':
 					block_count += 1
 
+                        # checks to see if it reached the terminal state, and then reset
 			if (move1 >= block_count): 
 				waitingForServer = True
 				reset.publish()
 				print("Optimal Reached - Resetting Tower")
 
 	outFile.close()
-
-	print("Done")

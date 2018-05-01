@@ -1,5 +1,12 @@
 #!/usr/bin/env python
 
+# Author: Leng Ghuy
+# Version: April 30th, 2018
+
+# Reinforcement Learning Agent that uses temporal difference with SARSA on-policy algorithm #
+
+###================================= IMPORTS =================================###
+
 import math
 import random
 import roslib; roslib.load_manifest('jenga_robot_gazebo')
@@ -7,19 +14,19 @@ import rospy
 from std_msgs.msg import Empty, Int32, String
 from jenga_robot_gazebo.srv import Move, MoveResponse
 
-# === Final Variables
+
+###============================ GLOBAL VARIABLES =============================###
 states = []
 index = [] #format [start0, end0/start1, end1/start2] 
            #inclusive lowerBound, exclusive upperBound
-           
+
+initState = "111111111"
 height = 3
 blocks = height*3
 
 fallenIndex = -1
 fallenReward = -65
-#gaolIndex is specified after index file is read in
 goalReward = 60
-#otherReward = is currently based on how many move has been made
 
 resultFile = open("result.txt", "w")
 policyFile = open("policy.txt", "w")
@@ -36,24 +43,46 @@ for i in range(len(readIn)):
 
 with open("index.txt") as f:
     index = f.read().splitlines()
-    index = list(map(int, index)) #python3 - take out list() around map() for python2
+    index = list(map(int, index))
 
 goalIndex = len(states)-1
-#example - print goal state
-#print(bin(states[goalIndex]))
 
-#============================== MDP =============================================
+###============================= ROS VARIABLES ===============================###
 
+jenga_move = None
+reset = None
+waitingForServer = True
+state = None
+newState = None
+
+Q = createStateAction() 
+#for i in range(len(Q)):
+#    print(bin(states[i]), Q[i])
+pi = [0 for i in range(len(states))]
+
+policyFile.write("[")
+for i in range(len(pi)):
+    policyFile.write(str(pi[i]) + ", ")
+policyFile.write("]\n")
+
+t = 0
+epoc = 0
+state_info = None
+iteration = 0
+
+
+###============================ HELPHER METHODS ==============================###
+
+'''
 def action(state, futureState):
     action = None
     xor = state ^ futureState
-    blockNum = int(math.log(xor&-xor, 2)) #0-index
+    blockNum = int(math.log(xor&-xor, 2)) #finds the rightmost set bit (0-index)
     mask = int("1", 2)
     for i in range (blockNum):
         temp = 1<<(i+1)
         mask |= temp
     action = bin(mask & state).count("1")
-    #print(bin(mask), blockNum, action)
     return (action-1)
 
 def possibleFuture(state, futureStates):
@@ -62,13 +91,21 @@ def possibleFuture(state, futureStates):
         if (bin(state ^ futureState).count("1") == 2):
             possibleFuture.append(futureState)
     return possibleFuture
-    
+'''
+
 def reward(stateIndex, timeStep):
     if (stateIndex == -1): return fallenReward
     elif (stateIndex == len(states)-1): return goalReward
     else: return timeStep
 
 def createStateAction():
+
+    '''
+    return: Q - state-action matrix
+    A method that creates the state-action matrix with None located at
+    invalid moves
+    '''
+    
     Q = [[None for i in range(blocks)] for j in range(len(states))]
     for i in range(len(states)-1):
         length = len(bin(states[i]))-2
@@ -78,29 +115,39 @@ def createStateAction():
         for j in range(moves):
             Q[i][j] = 0
     return Q
-        
-
     
 #returns [stateIndex (int), timeStep of currentState (int), futureStates(list)]
 def locateState(rosState, t):
+
+    '''
+    atrritubes: rosState - a little string representation from ROS
+                t - current timeStep (help indicate the indeces to look for
+    return: [stateIndex (int), timeStep (int), futureStates (list)]
+
+    locates the stateIndex of the given observed state in order to use in SARSA
+    '''
+    
     if (rosState == None or rosState == ""):
         return [-1, t, []]
     rosState = rosState[::-1]   #reverse string
     rosState = int(rosState,2)
-    #t = len(bin(rosState))-2 - blocks
-    if t>12: 
-        print("Oh no")
+    
+    if t>len(index)-2: 
+        print("State Not Found - assuming fallen")
         return [-1, t, []]
+    
     futureStates = []
-    if t<12: futureStates = states[index[t+1]:index[t+2]]
+    if t<len(index)-2: futureStates = states[index[t+1]:index[t+2]]
     for i in range(index[t], index[t+1]):
         if (rosState == states[i]):
             stateInformation = [i, t, futureStates]
             return stateInformation
+        
     print("State Not Found - assuming fallen")
     return [-1, t, []]
 
-#============================ SARSA UPDATES ==========================================
+
+###============================ SARSA UPDATES ================================###
 
 def sarsa_update(Q, oldS, newS, oldA, newA, r):
     #print(oldS, newS, oldA, newA)
@@ -133,35 +180,8 @@ def updatePi (pi, Q, s):
         pi[s] = Q[s].index(move)
     return pi
 
-#========= JUST TESTING =============#
-'''
-test = locateState("01001001001001011011",11);
-print(test)
-#print(len(bin(states[18]))-2)
-Q = createStateAction();
-for i in range(len(Q)):
-    print (bin(states[i]), Q[i])
-#listing = [1,7,4,None, 7]
-#print(listing.index(max(filter(None,listing))))
-''' 
-#============================ ROS STUFF ==========================================
-jenga_move = None
-reset = None
-waitingForServer = True
-state = None
-newState = None
-Q = createStateAction() #state_action matrix
-#for i in range(len(Q)):
-#    print(bin(states[i]), Q[i])
-pi = [0 for i in range(len(states))]
-policyFile.write("[")
-for i in range(len(pi)):
-    policyFile.write(str(pi[i]) + ", ")
-policyFile.write("]\n")
-t = 0
-epoc = 0
-state_info = None
-iteration = 0
+
+###============================== ROS CALLBACKS ==============================###
 
 def reset_callback(empty):
     global waitingForServer
@@ -174,7 +194,6 @@ def reset_callback(empty):
     waitingForServer = True
     newState = None
     epoc += 1
-    
   
     # write Q value for each state into the columns and the total actions taken
     iteration += 1
@@ -190,7 +209,8 @@ def reset_callback(empty):
     for i in range(len(Q)):
         policyFile.write(str(max(Q[i])) + ", ")
     policyFile.write("]\n")
-    
+
+    #write out every other 10th iteration
     if iteration%10==0:
         policyFile.write("Policy - [")
         for i in range(len(pi)):
@@ -211,6 +231,8 @@ def state_pub_callback(res):
         
     waitingForServer = False
 
+
+###============================== MAIN PROGRAM ===============================###
 
 if __name__ == '__main__':
 
@@ -233,30 +255,31 @@ if __name__ == '__main__':
         rospy.sleep(sleep_time)
 
         if not waitingForServer:
-            if state == "111111111":
+            if state == initState:
                 t=0
                 print("New Start - Observed state = " + state)
                 state_info = locateState(state, t)
                 action = pi[state_info[0]]
                 if action == None: action = random.randint(0, blocks-5)
-            
                 
             print("Moving Block #: " + str(action))
+            
             try:
                 res = jenga_move(action)
             except rospy.service.ServiceException:
                 pass
+            
             newState = res.data
 
             rospy.sleep(sleep_time) #see if the tower is fallen
 
             r = reward(state_info[0], state_info[1])
-
             t += 1
+            
             newState_info = locateState(newState, t)
             newAction = random.randint(1, blocks-5)
+            
             if (newState_info[0] != -1): newAction = pi[newState_info[0]]
-
             if newAction == None: newAction = random.randint(0, blocks-5)
             
             Q = sarsa_update(Q, state_info[0], newState_info[0], action, newAction, r)
